@@ -93,7 +93,7 @@ NDC-11 (`PROD_SRVC_ID`) produces 99.9% singleton groups in this synthetic data. 
 | Polypharmacy | Unique drugs, 90-day fill count | `PROD_SRVC_ID` |
 | Context | Refills so far, tenure, days supply | All |
 
-All features computed at **t−1** (lagged) to prevent information leakage.
+All features are computed at **t−1** (lagged) to prevent information leakage.
 
 ### Models
 
@@ -106,7 +106,7 @@ All features computed at **t−1** (lagged) to prevent information leakage.
 
 - **Temporal split** — Train (< Jul 2009) → Val (Jul 2009 – Jan 2010) → Test (≥ Jan 2010)
 - **No random splits** — prevents temporal leakage
-- **Censoring** — 247K last-fill intervals: dropped by XGBoost, used by survival model
+- **Censoring** — 247K last-fill intervals: dropped by XGBoost, used by the survival model
 
 ---
 
@@ -147,20 +147,6 @@ pharmacy2u-hackathon-refill/
 └── data/
     └── prescription_drug_event.csv    # CMS PDE data (not in repo — see setup)
 ```
-
----
-
-## Dissertation Expansion
-
-For the full Pharmacy2U internship with real dispensing data:
-
-- **Drug-level refill chains** via dm+d/BNF codes (replacing NDC-5 proxy)
-- **NLP-inspired sequence features** — medication embeddings, behavioural n-grams
-- **Hidden Markov Models** — latent adherence states (adherent → drifting → disengaged)
-- **Label sensitivity analysis** — sweep grace windows (3, 7, 10, 14 days)
-- **Change-point detection** — identify the exact moment behaviour shifts
-- **Temporal point processes** — model refill intensity as a function of history
-
 ---
 
 ## Tech Stack
