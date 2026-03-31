@@ -48,7 +48,7 @@ Select **Cell → Run All**. Full execution takes ~5–10 minutes.
 The notebook produces inline:
 - **9 plots** — PR curve, calibration (before/after), SHAP beeswarm, SHAP waterfall, 2× Kaplan-Meier, Cox forest plot, patient timelines
 - **Risk score table** — 77,828 patient-drug pairs scored with Low / Medium / High tiers
-- **Model comparison** — XGBoost PR-AUC, ROC-AUC, Brier score, Cox C-index
+- **Model evaluation** — XGBoost PR-AUC, ROC-AUC, Brier score, Cox C-index
 
 ---
 
