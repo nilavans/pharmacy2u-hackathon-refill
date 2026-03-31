@@ -46,9 +46,9 @@ Select **Cell → Run All**. Full execution takes ~5–10 minutes.
 ### 4. Outputs
 
 The notebook produces inline:
-- **8 plots** — PR curve, calibration, SHAP beeswarm, SHAP waterfall, 2 Kaplan-Meier, Cox forest plot, patient timelines
-- **Risk score table** — ranked patient-drug pairs with Low / Medium / High tiers
-- **Model comparison** — XGBoost PR-AUC, ROC-AUC, Cox C-index
+- **9 plots** — PR curve, calibration (before/after), SHAP beeswarm, SHAP waterfall, 2× Kaplan-Meier, Cox forest plot, patient timelines
+- **Risk score table** — 77,828 patient-drug pairs scored with Low / Medium / High tiers
+- **Model comparison** — XGBoost PR-AUC, ROC-AUC, Brier score, Cox C-index
 
 ---
 
@@ -68,9 +68,12 @@ gap = next_fill_date − expected_runout
 late = 1  if  gap > 7 days  (grace window)
 ```
 
+- **1,021,906** labelled intervals + **247,167** censored (last fill per pair)
+- **Late rate:** 69.6%
+
 ### Grouping Strategy
 
-NDC-11 (`PROD_SRVC_ID`) produces 99.9% singleton groups in this synthetic data. After testing every prefix length (NDC-5 through NDC-11), **NDC-5** (labeler prefix) gives 247K patient-drug groups with 3+ fills — the only workable level.
+NDC-11 (`PROD_SRVC_ID`) produces 99.9% singleton groups in this synthetic data. After systematic prefix analysis, **NDC-5** (labeler prefix) is used as a drug-group proxy.
 
 | Prefix | Unique | Groups ≥ 3 fills | Groups ≥ 5 fills |
 |--------|--------|-------------------|-------------------|
@@ -83,6 +86,8 @@ NDC-11 (`PROD_SRVC_ID`) produces 99.9% singleton groups in this synthetic data. 
 
 ### Features — 21 features across 7 categories
 
+All features computed at **t−1** (lagged) to prevent information leakage.
+
 | Category | Features | Source |
 |----------|----------|--------|
 | Gap statistics | Rolling mean, std, CV, trend, max | `SRVC_DT`, `DAYS_SUPLY_NUM` |
@@ -93,20 +98,22 @@ NDC-11 (`PROD_SRVC_ID`) produces 99.9% singleton groups in this synthetic data. 
 | Polypharmacy | Unique drugs, 90-day fill count | `PROD_SRVC_ID` |
 | Context | Refills so far, tenure, days supply | All |
 
-All features computed at **t−1** (lagged) to prevent information leakage.
-
 ### Models
 
 | Model | Target | Handles Censoring | Primary Metric |
 |-------|--------|-------------------|----------------|
 | **XGBoost** | Binary: late vs on-time | No (drops censored rows) | PR-AUC |
-| **Cox PH** | Time-to-next-refill (days) | Yes (last fill per pair) | C-index |
+| **Cox PH** | Time-to-next-refill (days) | Yes (247K censored intervals) | C-index |
+
+### Calibration
+
+Isotonic calibration applied post-training, fitted on the **validation set** (not test set) to avoid overfitting.
 
 ### Validation
 
-- **Temporal split** — Train (< Jul 2009) → Val (Jul 2009 – Jan 2010) → Test (≥ Jan 2010)
+- **Temporal split** — Train (< Jul 2009, 684,871 rows) → Val (Jul 2009 – Jan 2010, 188,964 rows) → Test (≥ Jan 2010, 148,071 rows)
 - **No random splits** — prevents temporal leakage
-- **Censoring** — 247K last-fill intervals: dropped by XGBoost, used by survival model
+- **Censoring** — 247,167 last-fill intervals: dropped by XGBoost, used by survival model
 
 ---
 
@@ -114,26 +121,39 @@ All features computed at **t−1** (lagged) to prevent information leakage.
 
 | Metric | Value | Baseline |
 |--------|-------|----------|
-| PR-AUC | **0.713** | 0.560 |
-| ROC-AUC | **0.688** | 0.500 |
-| Cox C-index | **0.633** | 0.500 |
+| **PR-AUC** | **0.709** (calibrated) | 0.560 |
+| **ROC-AUC** | **0.688** (calibrated) | 0.500 |
+| **Brier Score** | **0.228** (calibrated) | — |
+| **Cox C-index** | **0.633** | 0.500 |
 
-### Key Finding: Synthetic Data Limitation
+### Synthetic Data Limitation
 
-The CMS DE-SynPUF deliberately destroys co-variation between variables for privacy. Temporal autocorrelation is absent (lift = 1.00x — being late once does NOT predict future lateness). The pipeline is designed to capture temporal persistence signals that would exist in real dispensing data.
+The CMS DE-SynPUF deliberately destroys co-variation between variables for privacy:
+
+- **Temporal autocorrelation is absent** — being late once does NOT predict future lateness (tested: lift = 1.00x)
+- **Cross-sectional features show flat late rates** across all quartiles (max spread ~2–3 percentage points)
+- Model performance reflects this data limitation, not a methodology problem
+
+With real Pharmacy2U dispensing data, temporal persistence and cost burden signals would be expected to significantly improve discrimination.
 
 ---
 
 ## Demo Outputs
 
 ### Risk Score Table
-Top patient-drug pairs ranked by risk score with tiers (Low / Medium / High), historical late rate, and expected run-out date.
+77,828 patient-drug pairs scored and ranked, with risk tiers (Low / Medium / High), historical late rate, and expected run-out date.
 
-### Patient Timeline
-Visual showing coverage bars (green), grace window (amber), late periods (red), and risk score trend over time.
+### Patient Timelines
+Coverage bars (green), grace window (amber), late periods (red), and calibrated risk score trend over time.
 
 ### SHAP Analysis
 Feature importance beeswarm + single-patient waterfall explaining individual risk scores.
+
+### Kaplan-Meier Curves
+Refill survival stratified by polypharmacy level and days supply.
+
+### Cox Hazard Ratios
+Forest plot with 95% confidence intervals and p-values.
 
 ---
 
@@ -143,23 +163,10 @@ Feature importance beeswarm + single-patient waterfall explaining individual ris
 pharmacy2u-hackathon-refill/
 ├── README.md                          # This file
 ├── requirements.txt                   # Python dependencies
-├── refill_irregularity.ipynb          # Main analysis notebook
+├── refill_irregularity_v2.ipynb          # Main analysis notebook
 └── data/
     └── prescription_drug_event.csv    # CMS PDE data (not in repo — see setup)
 ```
-
----
-
-## Dissertation Expansion
-
-For the full Pharmacy2U internship with real dispensing data:
-
-- **Drug-level refill chains** via dm+d/BNF codes (replacing NDC-5 proxy)
-- **NLP-inspired sequence features** — medication embeddings, behavioural n-grams
-- **Hidden Markov Models** — latent adherence states (adherent → drifting → disengaged)
-- **Label sensitivity analysis** — sweep grace windows (3, 7, 10, 14 days)
-- **Change-point detection** — identify the exact moment behaviour shifts
-- **Temporal point processes** — model refill intensity as a function of history
 
 ---
 
