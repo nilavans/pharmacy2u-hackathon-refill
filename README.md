@@ -143,7 +143,7 @@ Feature importance beeswarm + single-patient waterfall explaining individual ris
 pharmacy2u-hackathon-refill/
 ├── README.md                          # This file
 ├── requirements.txt                   # Python dependencies
-├── refill_irregularity.ipynb          # Main analysis notebook
+├── refill_irregularity_v2.ipynb          # Main analysis notebook
 └── data/
     └── prescription_drug_event.csv    # CMS PDE data (not in repo — see setup)
 ```
