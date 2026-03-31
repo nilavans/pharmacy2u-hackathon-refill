@@ -168,6 +168,15 @@ pharmacy2u-hackathon-refill/
     └── prescription_drug_event.csv    # CMS PDE data (not in repo — see setup)
 ```
 ---
+## Credits
+ 
+This project was developed as part of the [DATA-AI Hackathon Track 1](https://github.com/luisacutillo78/DATA-AI-Hackathon-Track-1), organised in collaboration with **Pharmacy2U**. The hackathon focused on detecting refill irregularity and adherence risk from medication dispensing patterns.
+ 
+The dataset used is the [CMS 2008–2010 Data Entrepreneurs' Synthetic Public Use File (DE-SynPUF)](https://www.cms.gov/data-research/statistics-trends-and-reports/medicare-claims-synthetic-public-use-files/cms-2008-2010-data-entrepreneurs-synthetic-public-use-file-de-synpuf), provided as a safe synthetic dataset for modelling purposes.
+ 
+> This is a modelling and product-thinking exercise. Outputs should not be interpreted as clinical advice.
+
+---
 
 ## Tech Stack
 
