@@ -167,7 +167,6 @@ pharmacy2u-hackathon-refill/
 └── data/
     └── prescription_drug_event.csv    # CMS PDE data (not in repo — see setup)
 ```
-
 ---
 
 ## Tech Stack
